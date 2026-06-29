@@ -41,7 +41,15 @@ export class AuthService {
     const tokens = await this.generateTokens(user.id, user.email);
     await this.saveRefreshToken(user.id, tokens.refreshToken);
 
-    return { message: 'Login successful', data: tokens };
+    const userData = {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+    };
+
+    return { message: 'Login successful', data: { ...tokens, user: userData } };
   }
 
   async refreshTokens(userId: string, email: string) {
