@@ -17,11 +17,15 @@ export interface ApiResponse<T> {
 export class TransformInterceptor<T> implements NestInterceptor<T, ApiResponse<T>> {
   intercept(context: ExecutionContext, next: CallHandler): Observable<ApiResponse<T>> {
     return next.handle().pipe(
-      map((data) => ({
-        success: true,
-        message: data?.message || 'Operation successful',
-        data: data?.data !== undefined ? data.data : data,
-      })),
+      map((raw) => {
+        const { message, data, ...rest } = raw ?? {};
+        return {
+          success: true,
+          message: message || 'Operation successful',
+          data: data !== undefined ? data : raw,
+          ...rest, // preserves pagination fields: total, page, limit, totalPages
+        };
+      }),
     );
   }
 }

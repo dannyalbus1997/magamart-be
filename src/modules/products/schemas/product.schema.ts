@@ -26,6 +26,17 @@ export class Product {
 
 export const ProductSchema = SchemaFactory.createForClass(Product);
 
+// Ensure `id` (string) is always present and `_id` / `__v` are stripped
+ProductSchema.set('toJSON', {
+  virtuals: true,
+  transform: (_doc, ret: Record<string, any>) => {
+    ret.id = ret._id?.toString();
+    delete ret._id;
+    delete ret.__v;
+    return ret;
+  },
+});
+
 ProductSchema.index({ name: 'text', description: 'text' });
 ProductSchema.index({ category: 1 });
 ProductSchema.index({ price: 1 });
