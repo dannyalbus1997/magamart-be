@@ -11,6 +11,7 @@ import { ProductsModule } from './modules/products/products.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { CartModule } from './modules/cart/cart.module';
 import { OrdersModule } from './modules/orders/orders.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { HealthController } from './modules/health/health.controller';
 
 @Module({
@@ -38,6 +39,7 @@ import { HealthController } from './modules/health/health.controller';
     CategoriesModule,
     CartModule,
     OrdersModule,
+    AnalyticsModule,
   ],
   controllers: [HealthController],
 })
