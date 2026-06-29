@@ -9,6 +9,7 @@ import { UsersModule } from './modules/users/users.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { ProductsModule } from './modules/products/products.module';
 import { CategoriesModule } from './modules/categories/categories.module';
+import { CartModule } from './modules/cart/cart.module';
 import { HealthController } from './modules/health/health.controller';
 
 @Module({
@@ -34,6 +35,7 @@ import { HealthController } from './modules/health/health.controller';
     UploadModule,
     ProductsModule,
     CategoriesModule,
+    CartModule,
   ],
   controllers: [HealthController],
 })
