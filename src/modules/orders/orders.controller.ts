@@ -48,7 +48,7 @@ export class OrdersController {
   @Post()
   @ApiOperation({ summary: 'Place an order from the current cart' })
   async createOrder(@Req() req: any, @Body() dto: CreateOrderDto) {
-    const order = await this.ordersService.createOrder(this.uid(req), dto);
+    const order = await this.ordersService.createOrder(this.uid(req), dto, req.user);
     return { message: 'Order placed successfully', data: order };
   }
 

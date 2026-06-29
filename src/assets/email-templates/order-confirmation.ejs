@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order Confirmed – MegaMart</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f6fb;font-family:'Segoe UI',Roboto,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6fb;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="620" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;max-width:620px;width:100%;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:#1e40af;padding:28px 40px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td>
+                    <span style="font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">MegaMart</span>
+                  </td>
+                  <td align="right">
+                    <span style="font-size:12px;color:#bfdbfe;font-weight:600;letter-spacing:1px;">ORDER CONFIRMATION</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Hero -->
+          <tr>
+            <td style="background:#1d4ed8;padding:32px 40px 36px;text-align:center;">
+              <div style="width:56px;height:56px;background:rgba(255,255,255,0.15);border-radius:50%;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:28px;">✅</div>
+              <h1 style="margin:0 0 8px;font-size:24px;font-weight:700;color:#ffffff;">Your order is confirmed!</h1>
+              <p style="margin:0;font-size:15px;color:#bfdbfe;">
+                Hi <strong style="color:#fff;"><%= userName %></strong>, thanks for shopping with us.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Order ref banner -->
+          <tr>
+            <td style="padding:24px 40px 0;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#eff6ff;border-radius:10px;border:1px solid #bfdbfe;">
+                <tr>
+                  <td style="padding:16px 20px;">
+                    <p style="margin:0;font-size:12px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Order Reference</p>
+                    <p style="margin:4px 0 0;font-size:22px;font-weight:800;color:#1e40af;letter-spacing:1px;font-family:monospace;">#<%= order.id.slice(-8).toUpperCase() %></p>
+                  </td>
+                  <td align="right" style="padding:16px 20px;">
+                    <p style="margin:0;font-size:12px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Date</p>
+                    <p style="margin:4px 0 0;font-size:14px;font-weight:600;color:#374151;">
+                      <%= new Date(order.createdAt).toLocaleDateString('en-US', { day:'numeric', month:'long', year:'numeric' }) %>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Items -->
+          <tr>
+            <td style="padding:28px 40px 0;">
+              <p style="margin:0 0 12px;font-size:14px;font-weight:700;color:#111827;text-transform:uppercase;letter-spacing:0.5px;">Items Ordered</p>
+              <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;">
+                <tr style="background:#f9fafb;">
+                  <td style="padding:10px 16px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Product</td>
+                  <td style="padding:10px 8px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;text-align:center;">Qty</td>
+                  <td style="padding:10px 16px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;text-align:right;">Price</td>
+                  <td style="padding:10px 16px;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;text-align:right;">Total</td>
+                </tr>
+                <% order.items.forEach(function(item, idx) { %>
+                <tr style="border-top:1px solid #e5e7eb;<%= idx % 2 === 1 ? 'background:#f9fafb;' : '' %>">
+                  <td style="padding:12px 16px;font-size:14px;font-weight:600;color:#111827;"><%= item.product && item.product.name ? item.product.name : 'Product' %></td>
+                  <td style="padding:12px 8px;font-size:14px;color:#374151;text-align:center;"><%= item.quantity %></td>
+                  <td style="padding:12px 16px;font-size:14px;color:#374151;text-align:right;">$<%= item.price.toLocaleString('en-US') %></td>
+                  <td style="padding:12px 16px;font-size:14px;font-weight:700;color:#111827;text-align:right;">$<%= (item.price * item.quantity).toLocaleString('en-US') %></td>
+                </tr>
+                <% }); %>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Totals -->
+          <tr>
+            <td style="padding:16px 40px 0;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding:6px 0;font-size:14px;color:#6b7280;">Subtotal</td>
+                  <td style="padding:6px 0;font-size:14px;color:#374151;text-align:right;">$<%= order.subtotal.toLocaleString('en-US') %></td>
+                </tr>
+                <tr>
+                  <td style="padding:6px 0;font-size:14px;color:#6b7280;">Shipping</td>
+                  <td style="padding:6px 0;font-size:14px;color:#374151;text-align:right;"><%= order.shippingFee === 0 ? '<span style="color:#16a34a;font-weight:600;">FREE</span>' : '$' + order.shippingFee.toLocaleString('en-US') %></td>
+                </tr>
+                <tr style="border-top:2px solid #e5e7eb;">
+                  <td style="padding:12px 0 0;font-size:16px;font-weight:800;color:#111827;">Total</td>
+                  <td style="padding:12px 0 0;font-size:16px;font-weight:800;color:#1e40af;text-align:right;">$<%= order.total.toLocaleString('en-US') %></td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Shipping Address -->
+          <tr>
+            <td style="padding:28px 40px 0;">
+              <p style="margin:0 0 12px;font-size:14px;font-weight:700;color:#111827;text-transform:uppercase;letter-spacing:0.5px;">Shipping To</p>
+              <table cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:16px 20px;width:100%;">
+                <tr>
+                  <td style="padding:0;">
+                    <p style="margin:0;font-size:14px;font-weight:700;color:#111827;"><%= order.shippingAddress.name %></p>
+                    <p style="margin:4px 0 0;font-size:13px;color:#6b7280;line-height:1.6;">
+                      <%= order.shippingAddress.address %><br/>
+                      <%= order.shippingAddress.city %>, <%= order.shippingAddress.state %> <%= order.shippingAddress.zip %><br/>
+                      <%= order.shippingAddress.country %>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Payment status -->
+          <tr>
+            <td style="padding:20px 40px 0;">
+              <table cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 20px;width:100%;">
+                <tr>
+                  <td style="font-size:13px;color:#166534;">
+                    <strong>Payment status:</strong>
+                    <span style="text-transform:capitalize;margin-left:4px;"><%= order.paymentStatus || 'paid' %></span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- CTA -->
+          <tr>
+            <td style="padding:28px 40px;" align="center">
+              <a href="#" style="display:inline-block;background:#1e40af;color:#ffffff;font-size:14px;font-weight:700;padding:14px 32px;border-radius:10px;text-decoration:none;letter-spacing:0.3px;">View My Orders</a>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:24px 40px;text-align:center;">
+              <p style="margin:0 0 4px;font-size:13px;color:#9ca3af;">Questions? Contact us at <a href="mailto:support@megamart.com" style="color:#1e40af;text-decoration:none;">support@megamart.com</a></p>
+              <p style="margin:0;font-size:12px;color:#d1d5db;">© <%= new Date().getFullYear() %> MegaMart. All rights reserved.</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

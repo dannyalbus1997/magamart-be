@@ -11,6 +11,8 @@ export const validationSchema = Joi.object({
   JWT_ACCESS_EXPIRES_IN: Joi.string().default('15m'),
   JWT_REFRESH_SECRET: Joi.string().required(),
   JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
+  ACS_CONNECTION_STRING: Joi.string().allow('').optional(),
+  ACS_SENDER_ADDRESS: Joi.string().allow('').optional(),
 });
 
 export default () => ({
@@ -29,5 +31,9 @@ export default () => ({
     accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN,
     refreshSecret: process.env.JWT_REFRESH_SECRET,
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
+  },
+  acs: {
+    connectionString: process.env.ACS_CONNECTION_STRING || '',
+    senderAddress: process.env.ACS_SENDER_ADDRESS || 'DoNotReply@megamart.com',
   },
 });

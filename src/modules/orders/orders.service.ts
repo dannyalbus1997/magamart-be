@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -11,16 +12,20 @@ import { Product, ProductDocument } from '../products/schemas/product.schema';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { QueryOrdersDto } from './dto/query-orders.dto';
+import { MailService } from '../mail/mail.service';
 
 const SHIPPING_FEE = 99;
 const FREE_SHIPPING_THRESHOLD = 999;
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     @InjectModel(Order.name)   private orderModel:   Model<OrderDocument>,
     @InjectModel(Cart.name)    private cartModel:    Model<CartDocument>,
     @InjectModel(Product.name) private productModel: Model<ProductDocument>,
+    private readonly mailService: MailService,
   ) {}
 
   // ─── Format ─────────────────────────────────────────────────────────────────
@@ -70,7 +75,7 @@ export class OrdersService {
 
   // ─── Create ──────────────────────────────────────────────────────────────────
 
-  async createOrder(userId: string, dto: CreateOrderDto) {
+  async createOrder(userId: string, dto: CreateOrderDto, reqUser?: any) {
     // 1. Get cart
     const cart = await this.cartModel
       .findOne({ userId: new Types.ObjectId(userId) })
@@ -131,7 +136,17 @@ export class OrdersService {
       { items: [] },
     );
 
-    return this.format(order);
+    const formatted = await this.format(order);
+
+    // 6. Send order confirmation email (non-blocking)
+    if (reqUser?.email && formatted) {
+      const userName = [reqUser.firstName, reqUser.lastName].filter(Boolean).join(' ') || reqUser.email;
+      this.mailService
+        .sendOrderConfirmation(reqUser.email, { userName, order: formatted })
+        .catch((err) => this.logger.error('Order confirmation email failed', err));
+    }
+
+    return formatted;
   }
 
   // ─── Get user's orders ───────────────────────────────────────────────────────
