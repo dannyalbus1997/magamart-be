@@ -1,0 +1,25 @@
+# compiled output
+/dist
+/node_modules
+/build
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+
+# Env files
+.env
+.env.local
+.env.*.local
+
+# Uploads (keep folder, ignore contents)
+/uploads/*
+!/uploads/.gitkeep
+
+# Coverage
+/coverage
+/.nyc_output
