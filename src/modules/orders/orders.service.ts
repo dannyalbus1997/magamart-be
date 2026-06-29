@@ -138,7 +138,7 @@ export class OrdersService {
 
   async getMyOrders(userId: string) {
     const orders = await this.orderModel
-      .find({ userId: new Types.ObjectId(userId) })
+      .find({ userId: new Types.ObjectId(userId), status: { $ne: 'delivered' } })
       .sort({ createdAt: -1 })
       .exec();
 
