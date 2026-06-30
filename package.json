@@ -15,7 +15,8 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "db:seed-admin": "ts-node -r tsconfig-paths/register src/seeds/seed-admin.ts",
-    "db:seed-categories": "ts-node -r tsconfig-paths/register src/seeds/seed-categories.ts"
+    "db:seed-categories": "ts-node -r tsconfig-paths/register src/seeds/seed-categories.ts",
+    "db:seed-products": "ts-node -r tsconfig-paths/register src/seeds/seed-products.ts"
   },
   "dependencies": {
     "@azure/communication-email": "^1.1.0",
