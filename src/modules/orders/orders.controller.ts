@@ -7,10 +7,12 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { QueryOrdersDto } from './dto/query-orders.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 
 @ApiTags('Orders')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
@@ -29,6 +31,7 @@ export class OrdersController {
 
   /** GET /orders — admin: all orders with optional status filter + pagination */
   @Get()
+  @Roles('admin')
   @ApiOperation({ summary: 'Get all orders (admin)' })
   async getAllOrders(@Query() query: QueryOrdersDto) {
     const result = await this.ordersService.getAllOrders(query);
@@ -54,6 +57,7 @@ export class OrdersController {
 
   /** PUT /orders/:id/status — admin: update order status */
   @Put(':id/status')
+  @Roles('admin')
   @ApiOperation({ summary: 'Update order status (admin)' })
   async updateStatus(
     @Param('id') id: string,

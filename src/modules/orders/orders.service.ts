@@ -197,13 +197,27 @@ export class OrdersService {
 
   // ─── Admin: update status ────────────────────────────────────────────────────
 
+  private static readonly VALID_TRANSITIONS: Record<string, string[]> = {
+    pending:    ['processing', 'cancelled'],
+    processing: ['shipped', 'cancelled'],
+    shipped:    ['delivered'],
+    delivered:  [],
+    cancelled:  [],
+  };
+
   async updateStatus(id: string, dto: UpdateOrderStatusDto) {
-    const order = await this.orderModel.findByIdAndUpdate(
-      id,
-      { status: dto.status },
-      { new: true },
-    ).exec();
+    const order = await this.orderModel.findById(id).exec();
     if (!order) throw new NotFoundException('Order not found');
+
+    const allowed = OrdersService.VALID_TRANSITIONS[order.status] ?? [];
+    if (!allowed.includes(dto.status)) {
+      throw new BadRequestException(
+        `Cannot transition order from "${order.status}" to "${dto.status}"`,
+      );
+    }
+
+    order.status = dto.status as any;
+    await order.save();
     return this.format(order);
   }
 }

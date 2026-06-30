@@ -93,6 +93,17 @@ export class ProductsService {
     return updated;
   }
 
+  async findRecommendations(id: string, limit = 6): Promise<ProductDocument[]> {
+    const product = await this.productModel.findById(id).exec();
+    if (!product) throw new NotFoundException('Product not found');
+
+    return this.productModel
+      .find({ category: product.category, _id: { $ne: product._id } })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .exec();
+  }
+
   async remove(id: string): Promise<void> {
     const product = await this.productModel.findById(id).exec();
     if (!product) throw new NotFoundException('Product not found');

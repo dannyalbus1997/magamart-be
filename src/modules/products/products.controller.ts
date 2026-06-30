@@ -77,6 +77,14 @@ export class ProductsController {
     return { message: 'Product fetched', data: product };
   }
 
+  /** Public — same-category recommendations for a product */
+  @Get(':id/recommendations')
+  @ApiOperation({ summary: 'Get recommended products (same category)' })
+  async getRecommendations(@Param('id') id: string) {
+    const data = await this.productsService.findRecommendations(id);
+    return { message: 'Recommendations fetched', data };
+  }
+
   /** Admin — create product with optional image */
   @Post()
   @UseGuards(JwtAuthGuard)
