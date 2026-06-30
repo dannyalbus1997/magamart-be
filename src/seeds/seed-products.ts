@@ -26,69 +26,133 @@ const ProductSchema = new mongoose.Schema(
 
 const ProductModel = mongoose.model('Product', ProductSchema);
 
+// ── DummyJSON category map ────────────────────────────────────────────────────
+// Maps our store categories → DummyJSON API category slugs
+// https://dummyjson.com/products/categories
+
+const DUMMYJSON_MAP: Record<string, string[]> = {
+  'Electronics':      ['laptops', 'tablets'],
+  'Smartphones':      ['smartphones', 'mobile-accessories'],
+  'Fashion':          ['mens-shirts', 'womens-dresses', 'tops', 'womens-shoes', 'mens-shoes'],
+  'Furniture':        ['furniture', 'home-decoration'],
+  'Cosmetics':        ['beauty', 'fragrances'],
+  'Watches':          ['mens-watches', 'womens-watches'],
+  'Accessories':      ['sunglasses', 'womens-bags', 'mens-jewellery'],
+  'Daily Essentials': ['groceries'],
+  'Home & Kitchen':   ['kitchen-accessories'],
+  'Sports':           ['sports-accessories'],
+  'Beauty':           ['skin-care', 'beauty'],
+  'Groceries':        ['groceries'],
+};
+
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 function slugify(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-/**
- * Download a URL to a file, following up to 5 redirects.
- * Uses picsum.photos/seed/{seed}/W/H which is a stable, no-redirect URL.
- */
-function downloadFile(url: string, dest: string, redirects = 5): Promise<void> {
+/** Download URL → local file, following up to 10 redirects. */
+function downloadFile(url: string, dest: string, hops = 10): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (redirects === 0) return reject(new Error('Too many redirects'));
-
+    if (hops === 0) return reject(new Error('Too many redirects'));
     const mod = url.startsWith('https') ? https : http;
-    const req = mod.get(url, { timeout: 15000 }, (res) => {
+    const req = mod.get(url, { timeout: 20000 }, (res) => {
       if ([301, 302, 307, 308].includes(res.statusCode!)) {
-        const location = res.headers.location!;
-        res.resume(); // drain
-        return downloadFile(location, dest, redirects - 1).then(resolve, reject);
+        res.resume();
+        return downloadFile(res.headers.location!, dest, hops - 1).then(resolve, reject);
       }
       if (res.statusCode !== 200) {
         res.resume();
-        return reject(new Error(`HTTP ${res.statusCode}`));
+        return reject(new Error(`HTTP ${res.statusCode} for ${url}`));
       }
       const file = fs.createWriteStream(dest);
       res.pipe(file);
       file.on('finish', () => file.close(() => resolve()));
       file.on('error', (err) => { fs.unlink(dest, () => {}); reject(err); });
     });
-    req.on('timeout', () => { req.destroy(); reject(new Error('Request timed out')); });
+    req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
     req.on('error', reject);
   });
 }
 
-/**
- * Build a deterministic, redirect-free Picsum URL using a text seed.
- * https://picsum.photos/seed/{text}/600/600 → always resolves directly.
- */
-function imageUrl(slug: string): string {
-  return `https://picsum.photos/seed/${slug}/600/600`;
+/** Fetch JSON from a URL. */
+function fetchJSON<T>(url: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    https.get(url, { timeout: 15000 }, (res) => {
+      let data = '';
+      res.on('data', (chunk) => (data += chunk));
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); }
+        catch (e) { reject(e); }
+      });
+    })
+    .on('timeout', () => reject(new Error('Timeout')))
+    .on('error', reject);
+  });
 }
 
-async function fetchImage(slug: string): Promise<string | null> {
+/** Fetch all product thumbnail URLs for a given DummyJSON category slug. */
+async function fetchThumbnails(slug: string): Promise<string[]> {
+  try {
+    const data = await fetchJSON<{ products: { thumbnail: string }[] }>(
+      `https://dummyjson.com/products/category/${slug}?limit=20`,
+    );
+    return data.products.map((p) => p.thumbnail).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+// Cache so we don't re-fetch the same DummyJSON category repeatedly
+const thumbnailCache: Record<string, string[]> = {};
+
+async function getThumbnailsForCategory(category: string): Promise<string[]> {
+  if (thumbnailCache[category]) return thumbnailCache[category];
+
+  const slugs = DUMMYJSON_MAP[category] ?? ['groceries'];
+  const results: string[] = [];
+  for (const slug of slugs) {
+    const urls = await fetchThumbnails(slug);
+    results.push(...urls);
+  }
+  thumbnailCache[category] = results;
+  return results;
+}
+
+// Per-category pointer so each product gets a different image
+const catPointer: Record<string, number> = {};
+
+async function fetchAndSaveImage(slug: string, category: string): Promise<string | null> {
   if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
   const filename = `${slug}.jpg`;
   const dest     = path.join(UPLOAD_DIR, filename);
   const relative = `/uploads/products/${filename}`;
 
+  // Reuse already-downloaded image
   if (fs.existsSync(dest) && fs.statSync(dest).size > 0) {
     process.stdout.write(`    ↩  reused  ${filename}\n`);
     return relative;
   }
 
-  const url = imageUrl(slug);
+  // Pick next thumbnail for this category
+  const thumbs = await getThumbnailsForCategory(category);
+  if (thumbs.length === 0) {
+    process.stdout.write(`    ✗  no thumbnails found for category "${category}"\n`);
+    return null;
+  }
+
+  const idx = catPointer[category] ?? 0;
+  catPointer[category] = idx + 1;
+  const imageUrl = thumbs[idx % thumbs.length];
+
   try {
-    await downloadFile(url, dest);
-    process.stdout.write(`    ↓  saved   ${filename}\n`);
+    await downloadFile(imageUrl, dest);
+    process.stdout.write(`    ↓  saved   ${filename}  ← ${imageUrl}\n`);
     return relative;
   } catch (err) {
+    if (fs.existsSync(dest)) fs.unlinkSync(dest);
     process.stdout.write(`    ✗  failed  ${filename}: ${(err as Error).message}\n`);
-    if (fs.existsSync(dest)) fs.unlinkSync(dest); // remove partial file
     return null;
   }
 }
@@ -174,13 +238,9 @@ async function seedProducts() {
   await mongoose.connect(MONGODB_URI);
   console.log('✔  Connected to MongoDB\n');
 
-  if (!fs.existsSync(UPLOAD_DIR)) {
-    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-    console.log(`✔  Created uploads dir: ${UPLOAD_DIR}\n`);
-  }
+  if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
-  let created = 0;
-  let skipped = 0;
+  let created = 0, skipped = 0;
 
   for (const p of PRODUCTS) {
     const exists = await ProductModel.findOne({ name: p.name });
@@ -190,21 +250,20 @@ async function seedProducts() {
       continue;
     }
 
-    console.log(`  ➤  ${p.name}`);
+    console.log(`  ➤  ${p.name}  [${p.category}]`);
     const slug  = slugify(p.name);
-    const image = await fetchImage(slug);
-
+    const image = await fetchAndSaveImage(slug, p.category);
     await ProductModel.create({ ...p, image });
-    console.log(`  ✓  saved to DB\n`);
+    console.log(`  ✓  inserted\n`);
     created++;
   }
 
-  console.log(`\n────────────────────────────`);
-  console.log(`✔  Done: ${created} created, ${skipped} skipped`);
+  console.log(`\n────────────────────────────────────────`);
+  console.log(`✔  Done — ${created} created, ${skipped} skipped`);
   await mongoose.disconnect();
 }
 
 seedProducts().catch((err) => {
-  console.error('Seed failed:', err.message);
+  console.error('Seed failed:', err.message || err);
   process.exit(1);
 });
